@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot name="walker" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <material name="white">
+      <color rgba="0.90 0.90 0.90 1.00"/>
+  </material>
+
+  <xacro:property name="PI" value="3.141592"/>
+
+  <xacro:macro name="create_link" params="name">
+    <link name="${name}">
+      <visual>
+        <geometry>
+        </geometry>
+        <material name="white"/>
+      </visual>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="create_joint" params="parent child x:=0 y:=0 z:=0 axis angle_upper:=60 angle_lower:=-60">
+    <joint name="${parent}_${child}_joint" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
+      <axis xyz="${axis}"/>
+      <limit
+        lower="${angle_lower*PI/180}"
+        upper="${angle_upper*PI/180}"/>
+    </joint>
+  </xacro:macro>
+
+  <link name="world"/>
+
+  <joint name="world_base_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base"/>
+  </joint>
+
+  <xacro:create_link name="waist"/>
+    <xacro:create_joint parent="waist" child="r_thingy" axis="1 0 0"/>
+    <xacro:create_link name="r_thingy"/>
+      <xacro:create_joint parent="r_thingy" child="r_upper" axis="0 1 0"/>
+      <xacro:create_link name="r_upper"/>
+        <xacro:create_joint parent="r_upper" child="r_lower" axis="0 1 0"/>
+        <xacro:create_link name="r_lower"/>
+    <xacro:create_joint parent="waist" child="l_thingy" axis="1 0 0"/>
+    <xacro:create_link name="l_thingy"/>
+      <xacro:create_joint parent="l_thingy" child="l_upper" axis="0 1 0"/>
+      <xacro:create_link name="l_upper"/>
+        <xacro:create_joint parent="l_upper" child="l_lower" axis="0 1 0"/>
+        <xacro:create_link name="l_lower"/>
+</robot>
