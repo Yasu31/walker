@@ -12,7 +12,7 @@ extern "C" {
 #define SERVO_FREE_POSITION 0x8000
 #define SERVO_HOLD_POSITION 0x7FFF
 #define SERVO_NEWTRAL_POSITION 7500
-#define KHR_DOF 22
+#define KHR_DOF 6
 
 void error(KondoRef ki);
 std::string version_check();
@@ -26,7 +26,7 @@ int set_serial_servo_register_free();
 int copy_serial_servo_register_from_rom(unsigned short rom_addr, int servo_num);
 int read_servo_register(char lower, char upper);
 int register_servo_register_addr(unsigned short register_addr, int ics_num);
-int copy_and_register_servo_register(unsigned short ram_addr, int servo_num);
+int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id);
 int single_servo_action(unsigned char servo_id, unsigned short position, unsigned char speed);
 int all_servo_action(unsigned short position[], unsigned char speed);
 int windows_head_move();

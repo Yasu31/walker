@@ -10,16 +10,8 @@ extern "C" {
 #include <walker_kondo_driver/GetState.h>
 
 extern KondoInstance ki;
-unsigned char servo_gain[] = {0x01, 0x01, 0x01, 0x01, 0x01,
-                              0x01, 0x01, 0x01, 0x01, 0x01,
-                              0x01, 0x01, 0x01, 0x01, 0x01,
-                              0x01, 0x01, 0x01, 0x01, 0x01,
-                              0x01, 0x01};
-unsigned char servo_gain_hard[] = {0x01, 0x04, 0x07, 0x07, 0x07,
-                                   0x07, 0x02, 0x02, 0x01, 0x01,
-                                   0x03, 0x03, 0x05, 0x05, 0x06,
-                                   0x06, 0x03, 0x03, 0x03, 0x03,
-                                   0x03, 0x03};
+unsigned char servo_gain[] = {0x03, 0x03, 0x03, 0x03, 0x03, 0x03};
+unsigned char servo_gain_hard[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 sensor_msgs::JointState prev_joint_state, prev_sensor_state;
 
 // 受け取ったJointStateのnameをもとに、
@@ -31,14 +23,10 @@ void sanitiseJointState(const sensor_msgs::JointState::ConstPtr& js_in,
                         sensor_msgs::JointState *js_out)
 {
   sensor_msgs::JointState tmp_js;
-  char* joint_name[KHR_DOF] =
-    {"head_neck_y"    , "torso_waist_y", "larm_shoulder_p", "rarm_shoulder_p", "larm_shoulder_r",
-     "rarm_shoulder_r", "larm_elbow_y" , "rarm_elbow_y"   , "larm_elbow_p"   , "rarm_elbow_p"   ,
-     "lleg_crotch_y"  , "rleg_crotch_y", "lleg_crotch_r"  , "rleg_crotch_r"  , "lleg_crotch_p"  ,
-     "rleg_crotch_p"  , "lleg_knee_p"  , "rleg_knee_p"    , "lleg_ankle_p"   , "rleg_ankle_p"   ,
-     "lleg_ankle_r"   , "rleg_ankle_r"};
+  const char* joint_name[KHR_DOF] =
+    {"r_upper_r_lower_joint","l_upper_l_lower_joint","waist_r_thingy_joint","waist_l_thingy_joint","r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
   for (int i = 0; i < KHR_DOF; i++) {
-    char* tmp_name = joint_name[i];
+    const char* tmp_name = joint_name[i];
     double tmp_pos = 0;
     double tmp_eff = 0;
     for (int j = 0; j < js_in->name.size(); j++) {
@@ -78,9 +66,10 @@ void jsCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
   for (int i = 0; i < KHR_DOF; i++)
     { position[i] = 7500; }
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
+
     position[servo_num] = angle2servo(std::string(msg_sane.name[servo_num]), msg_sane.position[servo_num]);
   }
-  all_servo_action(position, 0x01);
+  int ret=all_servo_action(position, (unsigned char)1);
 }
 
 void gainCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
@@ -110,7 +99,7 @@ int main(int argc, char **argv)
   ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 1000, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(20);
 
 
   // open -------------------------------------------------------------------
@@ -127,23 +116,47 @@ int main(int argc, char **argv)
   }
   ki.debug = false;
 
+
   // servo on
   ROS_INFO("----- servo on");
   init_servo();
+
   ROS_INFO("sleep 1 sec...");
   sleep(1);
 
+  ROS_INFO("change servo gain");
+  change_all_servo_gain(50);
+
+  int ids[]={6,7,8,9,10,11};
+
   // move servo
   ROS_INFO("Ready.");
+
+  // DEMO: circular movement
+  // unsigned short position=6500;
+  // short increment=100;
+  // while(ros::ok()){
+  //   for(int i=0;i<KHR_DOF;i++){
+  //     single_servo_action(ids[i], position, 126);
+  //   }
+  //   position+=increment;
+  //   if (position>8500){
+  //     increment=-100;
+  //     position=8500;
+  //   }
+  //   if(position<6500){
+  //     increment=100;
+  //     position=6500;
+  //   }
+  //   ros::spinOnce();
+  //   loop_rate.sleep();
+  // }
+
   while (ros::ok()) {
     sensor_msgs::JointState ss_msg, js_msg;
     unsigned short position[KHR_DOF];
-    char* name[KHR_DOF] =
-      {"head_neck_y"    , "torso_waist_y", "larm_shoulder_p", "rarm_shoulder_p", "larm_shoulder_r",
-       "rarm_shoulder_r", "larm_elbow_y" , "rarm_elbow_y"   , "larm_elbow_p"   , "rarm_elbow_p"   ,
-       "lleg_crotch_y"  , "rleg_crotch_y", "lleg_crotch_r"  , "rleg_crotch_r"  , "lleg_crotch_p"  ,
-       "rleg_crotch_p"  , "lleg_knee_p"  , "rleg_knee_p"    , "lleg_ankle_p"   , "rleg_ankle_p"   ,
-       "lleg_ankle_r"   , "rleg_ankle_r"};
+    const char* name[KHR_DOF] =
+      {"r_upper_r_lower_joint","l_upper_l_lower_joint","waist_r_thingy_joint","waist_l_thingy_joint","r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
     for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
       position[servo_num] = kondo_get_servo_pos((KondoRef)&ki, servo_num);
       ss_msg.position.push_back(position[servo_num]);
@@ -161,7 +174,7 @@ int main(int argc, char **argv)
     prev_joint_state = js_msg;
 
     sensor_msgs::JointState sensor_msg;
-    char* sensor_name[4] = {"gyro_p", "gyro_r", "acc_y", "acc_x"};
+    const char* sensor_name[4] = {"gyro_p", "gyro_r", "acc_y", "acc_x"};
     for (UINT sensor_idx = 0; sensor_idx < 4; sensor_idx++) {
       int sensor_val;
       kondo_read_analog((KondoRef)&ki, &sensor_val, sensor_idx + 1);

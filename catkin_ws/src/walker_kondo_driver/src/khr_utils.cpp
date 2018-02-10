@@ -87,33 +87,42 @@ int set_ics_switch(bool val) {
 }
 
 int init_servo() {
+  unsigned char servo_ids[KHR_DOF]={6,7,8,9,10,11};
   // set serial servo register
-  for (int servo_num = 0; servo_num < 22; servo_num++ ) {
-    if (servo_num == 1 || servo_num / 2 == 3 || servo_num / 2 == 5 || servo_num / 2 == 6)
-      { continue; }
+  for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
     unsigned short ram_addr = 0x0090 + (0x0014 * servo_num);
-    copy_and_register_servo_register(ram_addr,  servo_num);
+    copy_and_register_servo_register(ram_addr,  servo_ids[servo_num]);
   }
+
+  // do not run ROM program
+  set_system_register(1,0);
+  // set baud rate of communication with servos to 1.25Mbps
+  set_system_register(13,0);
+  set_system_register(14,1);
+
+  // set communication interval to 10ms
+  set_system_register(4,0);
+  set_system_register(5,0);
   // set ics switch on
   return set_ics_switch(true);
 }
 
-int set_serial_servo_register() {
+int set_serial_servo_register(unsigned short ram_addr, unsigned char servo_id) {
   ki.swap[0] = 27;
   ki.swap[1] = RCB4_CMD_MOV;
   ki.swap[2] = RCB4_COM_TO_RAM;
-  ki.swap[3] = 0x90;
-  ki.swap[4] = 0x00;
+  ki.swap[3] = (unsigned char)(ram_addr>>0);
+  ki.swap[4] = (unsigned char)(ram_addr>>8);
   ki.swap[5] = 0x00;
   // 内容
   ki.swap[6]  = 0x00;  // +0  レジスタ配置の内容種別
-  ki.swap[7]  = 0x00;  // +1  シリアルサーボのID
-  ki.swap[8]  = 0x80;  // +2  基準値
-  ki.swap[9]  = 0x80;  //     ->
+  ki.swap[7]  = servo_id;  // +1  シリアルサーボのID
+  ki.swap[8]  = 0x00;  // +2  基準値
+  ki.swap[9]  = 0x00;  //     ->
   ki.swap[10] = 0x00;  // +4  実測値
   ki.swap[11] = 0x00;  //     ->
-  ki.swap[12] = 0x80;  // +6  出力値
-  ki.swap[13] = 0x80;  //     ->
+  ki.swap[12] = 0x00;  // +6  出力値
+  ki.swap[13] = 0x00;  //     ->
   ki.swap[14] = 0x00;  // +8  補完動作時の補完速度
   ki.swap[15] = 0x00;  // +9  補完動作終了時のポジション
   ki.swap[16] = 0x00;  //     ->
@@ -127,13 +136,14 @@ int set_serial_servo_register() {
   ki.swap[24] = 0x00;  //     ->
   ki.swap[25] = 0x00;  // +19 ミキシング2の動作方法
   ki.swap[26] = kondo_checksum(&ki, 26);
+  ROS_INFO("registering servo_id %d ...",servo_id);
   return kondo_trx(&ki, 27, 4);
 }
 
 // windowsから一度ROMに書き込んでおくと設定がコピーできる。
 // idが同じでポートが違うサーボを一つだけ動かすこともこれで可能になる。
-int copy_serial_servo_register_from_rom(unsigned short ram_addr, int servo_num) {
-  unsigned long rom_addr = 0x00626 + (servo_num * 20);
+int copy_serial_servo_register_from_rom(unsigned short ram_addr, unsigned char servo_id) {
+  unsigned long rom_addr = 0x00626 + (servo_id * 20);
   // ROS_INFO("rom_addr = %x", rom_addr);
   ki.swap[0]  = 11;                               // data size
   ki.swap[1]  = 0x00;                             // MOV
@@ -149,6 +159,7 @@ int copy_serial_servo_register_from_rom(unsigned short ram_addr, int servo_num) 
   return kondo_trx(&ki, 11, 4);
 }
 
+
 int read_servo_register(char lower, char upper) {
   ki.swap[0] = 10;
   ki.swap[1] = RCB4_CMD_MOV;
@@ -163,8 +174,8 @@ int read_servo_register(char lower, char upper) {
   return kondo_trx(&ki, 10, 23);
 }
 
-int register_servo_register_addr(unsigned short register_addr, int ics_num) {
-  unsigned short ics_addr = 0x0044 + (2 * ics_num);
+int register_servo_register_addr(unsigned short register_addr, unsigned char servo_id) {
+  unsigned short ics_addr = 0x0044 + 2*servo_id;
   ki.swap[0] = 9;
   ki.swap[1] = RCB4_CMD_MOV;
   ki.swap[2] = RCB4_COM_TO_RAM;
@@ -174,12 +185,20 @@ int register_servo_register_addr(unsigned short register_addr, int ics_num) {
   ki.swap[6] = (unsigned char)(register_addr >> 0);
   ki.swap[7] = (unsigned char)(register_addr >> 8);
   ki.swap[8] = kondo_checksum(&ki, 8);
+  ROS_INFO("copying ram_addr %hu to address %hu",register_addr, ics_addr);
   return kondo_trx(&ki, 9, 4);
 }
 
-int copy_and_register_servo_register(unsigned short ram_addr, int servo_num) {
-  copy_serial_servo_register_from_rom(ram_addr, servo_num);
-  return register_servo_register_addr(ram_addr, servo_num);
+int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id) {
+  ROS_INFO("registering servo_id %d with ram address %hu ...", servo_id, ram_addr);
+  int ret=copy_serial_servo_register_from_rom(ram_addr, servo_id);
+
+  // ROS_INFO("setting servo's serial register at address %hu...",ram_addr);
+  // int ret=set_serial_servo_register(ram_addr, servo_id);
+
+  ROS_INFO("registering user ram address to ICS designation address...");
+  ret=register_servo_register_addr(ram_addr, servo_id);
+  return ret;
 }
 
 int single_servo_action(unsigned char servo_id, unsigned short position, unsigned char speed) {
@@ -194,20 +213,20 @@ int single_servo_action(unsigned char servo_id, unsigned short position, unsigne
 }
 
 int all_servo_action(unsigned short position[], unsigned char speed) {
-  ki.swap[0] = 81;
+  ki.swap[0] = 9+2*KHR_DOF;
   ki.swap[1] = RCB4_CMD_ICS;
-  ki.swap[2] = 0b11111111;
-  ki.swap[3] = 0b11111111;
-  ki.swap[4] = 0b11111111;
-  ki.swap[5] = 0b11111111;
-  ki.swap[6] = 0b00001111;
+  ki.swap[2] = 0b11000000;
+  ki.swap[3] = 0b00001111;
+  ki.swap[4] = 0b00000000;
+  ki.swap[5] = 0b00000000;
+  ki.swap[6] = 0b00000000;
   ki.swap[7] = speed;
-  for (int i = 0; i < 36; i++) {
+  for (int i = 0; i < KHR_DOF; i++) {
     ki.swap[8 + (2 * i)] = (position[i] >> 0);
     ki.swap[9 + (2 * i)] = (position[i] >> 8);
   }
-  ki.swap[80] = kondo_checksum(&ki, 80);
-  return kondo_trx(&ki, 81, 4);
+  ki.swap[8+2*KHR_DOF] = kondo_checksum(&ki,8+2*KHR_DOF);
+  return kondo_trx(&ki, 9+2*KHR_DOF, 4);
 }
 
 // Windowsで頭を動かしたときのコマンドを真似してみる。
@@ -280,18 +299,18 @@ int windows_lshoulderp_move() {
 int change_all_servo_gain(unsigned char gain) {
   gain = gain <   1 ?   1 : gain;
   gain = gain > 127 ? 127 : gain;
-  ki.swap[0]  = 45;
+  ki.swap[0]  = KHR_DOF+9;
   ki.swap[1]  = 0x12;  // リファレンスは間違っている
-  ki.swap[2]  = 0b11111111;
-  ki.swap[3]  = 0b11111111;
-  ki.swap[4]  = 0b11111111;
-  ki.swap[5]  = 0b11111111;
-  ki.swap[6]  = 0b00001111;
+  ki.swap[2] = 0b11111111;
+  ki.swap[3] = 0b11111111;
+  ki.swap[4] = 0b11111111;
+  ki.swap[5] = 0b11111111;
+  ki.swap[6] = 0b00001111;
   ki.swap[7]  = 0x01;
-  for (int i = 0; i < 36; i++)
+  for (int i = 0; i < KHR_DOF; i++)
     { ki.swap[8 + i] = gain; }
-  ki.swap[44] = kondo_checksum(&ki, 44);
-  return kondo_trx(&ki, 45, 4);
+  ki.swap[KHR_DOF+8] = kondo_checksum(&ki, KHR_DOF+8);
+  return kondo_trx(&ki, KHR_DOF+9, 4);
 }
 
 // 全サーボのゲイン（KHR用語では「ストレッチ」）を変更
@@ -327,35 +346,12 @@ int change_all_servo_gain(unsigned char gain_array[], int array_size) {
 double servo2angle(std::string name, unsigned short position) {
   double angle = (position - 7500) * 90.0 / 2500.0;
   angle = angle * M_PI / 180.0;
-  if (name == "") {
-    return 0;
-  } else if (name == "head_neck_y" ||
-             name == "torso_waist_y" ||
-             name == "larm_shoulder_p" ||
-             name == "rarm_elbow_p" ||
-             name == "lleg_crotch_p" ||
-             name == "rleg_knee_p" ||
-             name == "rleg_ankle_p" ||
-             name == "lleg_ankle_r" ||
-             name == "rleg_ankle_r") {
-    return -angle;
-  } else {
-    return angle;
-  }
+  // do some plus/minus correction here
+  return angle;
 }
 
 unsigned short angle2servo(std::string name, double angle) {
   angle = angle * 180.0 / M_PI;
-  if (name == "head_neck_y" ||
-      name == "torso_waist_y" ||
-      name == "larm_shoulder_p" ||
-      name == "rarm_elbow_p" ||
-      name == "lleg_crotch_p" ||
-      name == "rleg_knee_p" ||
-      name == "rleg_ankle_p" ||
-      name == "lleg_ankle_r" ||
-      name == "rleg_ankle_r") {
-    angle = -angle;
-  }
+  // do some plus/minus correction here
   return (unsigned short)(angle * 2500.0 / 90.0) + 7500;
 }

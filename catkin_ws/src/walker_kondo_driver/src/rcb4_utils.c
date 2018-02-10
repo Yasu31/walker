@@ -105,7 +105,9 @@ int copy_serial_servo_register_from_rom(KondoRef ki, unsigned short ram_addr, in
 }
 
 int register_servo_register_addr(KondoRef ki, unsigned short register_addr, int ics_num) {
-  unsigned short ics_addr = 0x0044 + (2 * ics_num);
+  // unsigned short ics_addr = 0x0044 + (2 * ics_num);
+  unsigned short ics_addrs[]={0x004A, 0x004C, 0x004E, 0x006E, 0x0070,0x0072};
+  unsigned short ics_addr = ics_addrs[ics_num];
   ki->swap[0] = 9;
   ki->swap[1] = RCB4_CMD_MOV;
   ki->swap[2] = RCB4_COM_TO_RAM;
@@ -119,8 +121,9 @@ int register_servo_register_addr(KondoRef ki, unsigned short register_addr, int 
 }
 
 int copy_and_register_servo_register(KondoRef ki, unsigned short ram_addr, int servo_num) {
-  copy_serial_servo_register_from_rom(ki, ram_addr, servo_num);
-  return register_servo_register_addr(ki, ram_addr, servo_num);
+  // copy_serial_servo_register_from_rom(ki, ram_addr, servo_num);
+  // set_serial_servo_register();
+  // return register_servo_register_addr(ki, ram_addr, servo_num);
 }
 
 int kondo_get_servos_byte(KondoRef ki, UINT servo_idx, UINT offset,
@@ -229,7 +232,7 @@ int kondo_get_servos_all_word(KondoRef ki, short int *data)
     }
   }
   return vi;
-}  
+}
 
 int kondo_get_servos_all_byte(KondoRef ki, UCHAR *data)
 {
@@ -244,7 +247,7 @@ int kondo_get_servos_all_byte(KondoRef ki, UCHAR *data)
     }
   }
   return vi;
-}  
+}
 
 int kondo_get_servos_three_separate(KondoRef ki, short int start_no, short int *data)
 {
@@ -276,7 +279,7 @@ int kondo_get_servos_three(KondoRef ki, short int *data)
     }
   }
   return vi;
-}  
+}
 
 int kondo_read_analog_all(KondoRef ki, short int *result, int num)
 {
