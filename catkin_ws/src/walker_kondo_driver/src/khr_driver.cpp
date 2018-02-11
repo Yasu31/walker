@@ -24,7 +24,9 @@ void sanitiseJointState(const sensor_msgs::JointState::ConstPtr& js_in,
 {
   sensor_msgs::JointState tmp_js;
   const char* joint_name[KHR_DOF] =
-    {"r_upper_r_lower_joint","l_upper_l_lower_joint","waist_r_thingy_joint","waist_l_thingy_joint","r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
+    {"r_upper_r_lower_joint","l_upper_l_lower_joint",
+    "waist_r_thingy_joint","waist_l_thingy_joint",
+    "r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
   for (int i = 0; i < KHR_DOF; i++) {
     const char* tmp_name = joint_name[i];
     double tmp_pos = 0;
@@ -56,6 +58,8 @@ bool getStateCb(walker_kondo_driver::GetState::Request  &req,
 
 void jsCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
+  ros::Time tmp_time = ros::Time::now();
+  ROS_INFO("jsCommandCallback start at %d", tmp_time.nsec);
   sensor_msgs::JointState msg_sane;
   sanitiseJointState(msg, &msg_sane);
   if (msg_sane.name.size() != KHR_DOF || msg_sane.position.size() != KHR_DOF) {
@@ -66,10 +70,12 @@ void jsCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
   for (int i = 0; i < KHR_DOF; i++)
     { position[i] = 7500; }
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
-
     position[servo_num] = angle2servo(std::string(msg_sane.name[servo_num]), msg_sane.position[servo_num]);
   }
+  tmp_time = ros::Time::now();
+  ROS_INFO("jsCommandCallback end at %d", tmp_time.nsec);
   int ret=all_servo_action(position, (unsigned char)1);
+  return;
 }
 
 void gainCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
@@ -99,7 +105,7 @@ int main(int argc, char **argv)
   ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 1000, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Rate loop_rate(20);
+  ros::Rate loop_rate(10);
 
 
   // open -------------------------------------------------------------------
@@ -134,6 +140,7 @@ int main(int argc, char **argv)
 
   // DEMO: circular movement
   // unsigned short position=6500;
+  // change_all_servo_gain(20);
   // short increment=100;
   // while(ros::ok()){
   //   for(int i=0;i<KHR_DOF;i++){
@@ -184,7 +191,7 @@ int main(int argc, char **argv)
     sensor_pub.publish(sensor_msg);
     prev_sensor_state = sensor_msg;
 
-    ros::spinOnce();
+    ros::spin();
     loop_rate.sleep();
   }
 

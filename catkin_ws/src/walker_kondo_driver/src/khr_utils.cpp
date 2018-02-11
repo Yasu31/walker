@@ -100,6 +100,10 @@ int init_servo() {
   set_system_register(13,0);
   set_system_register(14,1);
 
+  // set baud rate of communication with RCB to 1.25Mbps
+  set_system_register(4,0);
+  set_system_register(5,1);
+
   // set communication interval to 10ms
   set_system_register(4,0);
   set_system_register(5,0);

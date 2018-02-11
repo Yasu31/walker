@@ -43,7 +43,7 @@
 //#define RCB4_BAUD 115200
 #define RCB4_BAUD 1250000
 #define RCB4_SWAP_SIZE 256
-#define RCB4_RX_TIMEOUT 1000000
+#define RCB4_RX_TIMEOUT 100//0000
 
 // rcb4 -----------------------------------------------------------------------
 
