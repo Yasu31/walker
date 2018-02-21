@@ -5,6 +5,8 @@ from sensor_msgs.msg import JointState
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from threading import Thread
 
 
 def thingy_upper_joint(normalized_time, rl=0):
@@ -56,56 +58,96 @@ def waist_thingy_joint(normalized_time, rl=0):
     elif normalized_time<0.9:
         return j[1-rl]+(j[rl]-j[1-rl])*(normalized_time-0.8)/0.1
 
+def animate(i):
+    print("oh hai mark")
+    right_normalized_time=normalized_time-math.floor(normalized_time)
+    left_normalized_time=(normalized_time+0.5)-math.floor(normalized_time+0.5)
+    rtopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+    rtopnow.set_xdata(right_normalized_time)
+    ltopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+    ltopnow.set_xdata(left_normalized_time)
+    rmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+    rmiddlenow.set_xdata(right_normalized_time)
+    lmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+    lmiddlenow.set_xdata(left_normalized_time)
+    rbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+    rbottomnow.set_xdata(right_normalized_time)
+    lbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+    lbottomnow.set_xdata(left_normalized_time)
+    print("hey")
+    # fig.canvas.show()
+
+
 
 if __name__=='__main__':
     pub=rospy.Publisher("/kondo_driver/command/joint_state", JointState, queue_size=100)
     rospy.init_node('walk_publisher', anonymous=True)
-    rate=rospy.Rate(40)
+    rate=rospy.Rate(50)
     normalized_time=0.0
-    cycle=2.0
-    time_axe=np.arange(0.0,1.0,0.01)
-    plt.ion()
+    cycle=1.0
+
+    time_axe=np.arange(0.0,1.0,0.1)
+    fig=plt.figure()
+    ltop=fig.add_subplot(331)
+    ltopdata, ltopnow=ltop.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    lmiddle=fig.add_subplot(332)
+    lmiddledata,lmiddlenow=lmiddle.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    lbottom=fig.add_subplot(333)
+    lbottomdata,lbottomnow=lbottom.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    rtop=fig.add_subplot(337)
+    rtopdata, rtopnow=rtop.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    rmiddle=fig.add_subplot(338)
+    rmiddledata,rmiddlenow=rmiddle.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    rbottom=fig.add_subplot(339)
+    rbottomdata,rbottomnow=rbottom.plot(time_axe, time_axe, 'k', [0],[0],'bo')
+    # t=Thread(target=plotter)
+    # t.start()
+    # plt.ion()
+    ani=FuncAnimation(fig, animate, frames=1000)
+    plt.show()
+
     while not rospy.is_shutdown():
         print("normalized_time is "+str(normalized_time))
         normalized_time=rospy.get_time()/cycle
-        constrained_normalized_time=normalized_time-math.floor(normalized_time)
         joint_state=JointState()
 
         # all the joints must be published, because of the code for kondo_driver.
 
         joint_state.name.append("r_thingy_r_upper_joint")
         joint_state.position.append(thingy_upper_joint(normalized_time))
-        plt.subplot(331)
-        plt.plot(time_axe, [thingy_upper_joint(t) for t in time_axe], 'k', constrained_normalized_time, thingy_upper_joint(normalized_time), "bo")
+        # rtopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+        # rtopnow.set_xdata(right_normalized_time)
 
         joint_state.name.append("l_thingy_l_upper_joint")
         joint_state.position.append(thingy_upper_joint(normalized_time+0.5))
-        plt.subplot(333)
-        plt.plot(time_axe, [thingy_upper_joint(t) for t in time_axe], 'k', constrained_normalized_time, thingy_upper_joint(normalized_time), "bo")
+        # ltopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+        # ltopnow.set_xdata(left_normalized_time)
 
         joint_state.name.append("r_upper_r_lower_joint")
         joint_state.position.append(upper_lower_joint(normalized_time))
-        plt.subplot(334)
-        plt.plot(time_axe, [upper_lower_joint(t) for t in time_axe], 'k', constrained_normalized_time, upper_lower_joint(normalized_time), "bo")
+        # rmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+        # rmiddlenow.set_xdata(right_normalized_time)
 
         joint_state.name.append("l_upper_l_lower_joint")
         joint_state.position.append(upper_lower_joint(normalized_time+0.5))
-        plt.subplot(336)
-        plt.plot(time_axe, [upper_lower_joint(t) for t in time_axe], 'k', constrained_normalized_time, upper_lower_joint(normalized_time), "bo")
+        # lmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+        # lmiddlenow.set_xdata(left_normalized_time)
+
 
         joint_state.name.append("waist_r_thingy_joint")
         joint_state.position.append(waist_thingy_joint(normalized_time, 0))
-        plt.subplot(337)
-        plt.plot(time_axe, [waist_thingy_joint(t) for t in time_axe], 'k', constrained_normalized_time, waist_thingy_joint(normalized_time), "bo")
+        # rbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+        # rbottomnow.set_xdata(right_normalized_time)
 
         joint_state.name.append("waist_l_thingy_joint")
         joint_state.position.append(waist_thingy_joint(normalized_time+0.5, 1))
-        plt.subplot(339)
-        plt.plot(time_axe, [waist_thingy_joint(t) for t in time_axe], 'k', constrained_normalized_time, waist_thingy_joint(normalized_time), "bo")
+        # lbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+        # lbottomnow.set_xdata(left_normalized_time)
 
         pub.publish(joint_state)
-        plt.pause(0.0001)
-        plt.clf()
-        plt.draw()
+        # plt.pause(0.0001)
+        # plt.clf()
+        # plt.draw()
+        # fig.canvas.draw()
         rate.sleep()
     plt.close()
