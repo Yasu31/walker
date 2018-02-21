@@ -181,17 +181,31 @@ int main(int argc, char **argv)
     prev_joint_state = js_msg;
 
     sensor_msgs::JointState sensor_msg;
-    const char* sensor_name[4] = {"gyro_p", "gyro_r", "acc_y", "acc_x"};
-    for (UINT sensor_idx = 0; sensor_idx < 4; sensor_idx++) {
+    const char* sensor_name[5] = {"battery" , "gyro_p", "gyro_r", "acc_y", "acc_x"};
+    bool batteryIsLow=false;
+    for (UINT sensor_idx = 0; sensor_idx < 5; sensor_idx++) {
       int sensor_val;
-      kondo_read_analog((KondoRef)&ki, &sensor_val, sensor_idx + 1);
+      kondo_read_analog((KondoRef)&ki, &sensor_val, sensor_idx);
+      if (sensor_idx==0){
+        // battery voltage = (sensor_val) * 25 / 1024
+        // the battery pack is at 7.2V
+        // we obviously don't have to worry about the battery while on the power adapter, so we ignore if the value is below 270.
+        float voltage=(float)sensor_val*25.0/1024.0;
+        if (6.2<voltage && voltage <7.0){
+          ROS_WARN("battery level below 7 Volts, at %lf Volts", voltage);
+          batteryIsLow=true;
+        }
+      }
       sensor_msg.name.push_back(sensor_name[sensor_idx]);
       sensor_msg.position.push_back(sensor_val);
+    }
+    if (batteryIsLow){
+      break;
     }
     sensor_pub.publish(sensor_msg);
     prev_sensor_state = sensor_msg;
 
-    ros::spin();
+    ros::spinOnce();  // this calls the callbacks.
     loop_rate.sleep();
   }
 
