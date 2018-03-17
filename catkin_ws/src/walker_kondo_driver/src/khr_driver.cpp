@@ -10,8 +10,8 @@ extern "C" {
 #include <walker_kondo_driver/GetState.h>
 
 extern KondoInstance ki;
-unsigned char servo_gain[] = {0x03, 0x03, 0x03, 0x03, 0x03, 0x03};
-unsigned char servo_gain_hard[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+unsigned char servo_gain[] = {0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,0x03,0x03,0x03};
+unsigned char servo_gain_hard[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 sensor_msgs::JointState prev_joint_state, prev_sensor_state;
 
 // 受け取ったJointStateのnameをもとに、
@@ -24,9 +24,18 @@ void sanitiseJointState(const sensor_msgs::JointState::ConstPtr& js_in,
 {
   sensor_msgs::JointState tmp_js;
   const char* joint_name[KHR_DOF] =
-    {"r_upper_r_lower_joint","l_upper_l_lower_joint",
-    "waist_r_thingy_joint","waist_l_thingy_joint",
-    "r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
+  {
+    //each number depends on servo IDs and whether it's connected to SIO 1~3 or 5~7
+    "r_ankle_pitch",//4
+    "l_ankle_yaw",//5
+    "r_knee",//6
+    "l_knee",//7
+    "r_hip_pitch",//8
+    "l_hip_pitch",//9
+    "r_hip_yaw",//10
+    "l_hip_yaw",//11
+    "l_ankle_pitch",//19
+    "r_ankle_yaw"};//30
   for (int i = 0; i < KHR_DOF; i++) {
     const char* tmp_name = joint_name[i];
     double tmp_pos = 0;
@@ -102,10 +111,10 @@ int main(int argc, char **argv)
   ros::Publisher ss_pub = n.advertise<sensor_msgs::JointState>("servo_state", 1000);
   ros::Publisher js_pub = n.advertise<sensor_msgs::JointState>("joint_state", 1000);
   ros::Publisher sensor_pub = n.advertise<sensor_msgs::JointState>("sensor_state", 1000);
-  ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 1000, jsCommandCallback);
+  ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 10, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(30);
 
 
   // open -------------------------------------------------------------------
@@ -132,8 +141,6 @@ int main(int argc, char **argv)
 
   ROS_INFO("change servo gain");
   change_all_servo_gain(50);
-
-  int ids[]={6,7,8,9,10,11};
 
   // move servo
   ROS_INFO("Ready.");
@@ -163,7 +170,16 @@ int main(int argc, char **argv)
     sensor_msgs::JointState ss_msg, js_msg;
     unsigned short position[KHR_DOF];
     const char* name[KHR_DOF] =
-      {"r_upper_r_lower_joint","l_upper_l_lower_joint","waist_r_thingy_joint","waist_l_thingy_joint","r_thingy_r_upper_joint","l_thingy_l_upper_joint"};
+      {   "r_ankle_pitch",//4
+          "l_ankle_yaw",//5
+          "r_knee",//6
+          "l_knee",//7
+          "r_hip_pitch",//8
+          "l_hip_pitch",//9
+          "r_hip_yaw",//10
+          "l_hip_yaw",//11
+          "l_ankle_pitch",//19
+          "r_ankle_yaw"};
     for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
       position[servo_num] = kondo_get_servo_pos((KondoRef)&ki, servo_num);
       ss_msg.position.push_back(position[servo_num]);
@@ -191,7 +207,7 @@ int main(int argc, char **argv)
         // the battery pack is at 7.2V
         // we obviously don't have to worry about the battery while on the power adapter, so we ignore if the value is below 270.
         float voltage=(float)sensor_val*25.0/1024.0;
-        if (6.2<voltage && voltage <7.0){
+        if (6.5<voltage && voltage <7.0){
           ROS_WARN("battery level below 7 Volts, at %lf Volts", voltage);
           batteryIsLow=true;
         }

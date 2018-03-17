@@ -13,7 +13,7 @@ def thingy_upper_joint(normalized_time, rl=0):
     a=0.4
     b=-0.4
     e=0.9
-    g=2*a
+    g=(7.0*a-2.0*b)/5.0
     if normalized_time < 0.5:
         return a + (b-a) * normalized_time / 0.5
     elif normalized_time<e:
@@ -45,7 +45,7 @@ def upper_lower_joint(normalized_time, rl=0):
         return 0
 def waist_thingy_joint(normalized_time, rl=0):
     normalized_time-=math.floor(normalized_time)
-    j=[0.2,-0.2]
+    j=[0.1,-0.1]
     if normalized_time<0.5 or 0.9<normalized_time:
         return j[rl]
     elif normalized_time<0.6:
@@ -59,9 +59,9 @@ def waist_thingy_joint(normalized_time, rl=0):
 if __name__=='__main__':
     pub=rospy.Publisher("/kondo_driver/command/joint_state", JointState, queue_size=100)
     rospy.init_node('walk_publisher', anonymous=True)
-    rate=rospy.Rate(40)
+    rate=rospy.Rate(30)
     normalized_time=0.0
-    cycle=2.0
+    cycle=2.6
     time_axe=np.arange(0.0,1.0,0.01)
     while not rospy.is_shutdown():
         rospy.loginfo("normalized_time is "+str(normalized_time))

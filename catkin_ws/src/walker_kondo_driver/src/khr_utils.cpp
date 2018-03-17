@@ -87,7 +87,7 @@ int set_ics_switch(bool val) {
 }
 
 int init_servo() {
-  unsigned char servo_ids[KHR_DOF]={6,7,8,9,10,11};
+  unsigned char servo_ids[KHR_DOF]={4,5,6,7,8,9,10,11,19,30};
   // set serial servo register
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
     unsigned short ram_addr = 0x0090 + (0x0014 * servo_num);
@@ -142,6 +142,22 @@ int set_serial_servo_register(unsigned short ram_addr, unsigned char servo_id) {
   ki.swap[26] = kondo_checksum(&ki, 26);
   ROS_INFO("registering servo_id %d ...",servo_id);
   return kondo_trx(&ki, 27, 4);
+}
+
+int set_serial_servo_trim(unsigned short ram_addr) {
+  ram_addr+=2;
+  ki.swap[0] = 9;
+  ki.swap[1] = RCB4_CMD_MOV;
+  ki.swap[2] = RCB4_COM_TO_RAM;
+  ki.swap[3] = (unsigned char)(ram_addr>>0);
+  ki.swap[4] = (unsigned char)(ram_addr>>8);
+  ki.swap[5] = 0x00;
+  // 内容
+  ki.swap[6]  = 0x00;  // 基準値 (trim)
+  ki.swap[7]  = 0x00;
+  ki.swap[8] = kondo_checksum(&ki, 8);
+  ROS_INFO("setting servo_id's trim to zero...");
+  return kondo_trx(&ki, 9, 4);
 }
 
 // windowsから一度ROMに書き込んでおくと設定がコピーできる。
@@ -199,6 +215,8 @@ int copy_and_register_servo_register(unsigned short ram_addr, unsigned char serv
 
   // ROS_INFO("setting servo's serial register at address %hu...",ram_addr);
   // int ret=set_serial_servo_register(ram_addr, servo_id);
+  ROS_INFO("setting servo's trim to zero...");
+  ret=set_serial_servo_trim(ram_addr);
 
   ROS_INFO("registering user ram address to ICS designation address...");
   ret=register_servo_register_addr(ram_addr, servo_id);
@@ -219,10 +237,10 @@ int single_servo_action(unsigned char servo_id, unsigned short position, unsigne
 int all_servo_action(unsigned short position[], unsigned char speed) {
   ki.swap[0] = 9+2*KHR_DOF;
   ki.swap[1] = RCB4_CMD_ICS;
-  ki.swap[2] = 0b11000000;
+  ki.swap[2] = 0b11110000;
   ki.swap[3] = 0b00001111;
-  ki.swap[4] = 0b00000000;
-  ki.swap[5] = 0b00000000;
+  ki.swap[4] = 0b00001000;
+  ki.swap[5] = 0b01000000;
   ki.swap[6] = 0b00000000;
   ki.swap[7] = speed;
   for (int i = 0; i < KHR_DOF; i++) {

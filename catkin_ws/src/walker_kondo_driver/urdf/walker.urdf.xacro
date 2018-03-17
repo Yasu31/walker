@@ -16,8 +16,8 @@
     </link>
   </xacro:macro>
 
-  <xacro:macro name="create_joint" params="parent child x:=0 y:=0 z:=0 axis angle_upper:=60 angle_lower:=-60">
-    <joint name="${parent}_${child}_joint" type="revolute">
+  <xacro:macro name="create_joint" params="parent child name x:=0 y:=0 z:=0 axis angle_upper:=120 angle_lower:=-120">
+    <joint name="${name}" type="revolute">
       <parent link="${parent}"/>
       <child link="${child}"/>
       <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
@@ -36,16 +36,25 @@
   </joint>
 
   <xacro:create_link name="waist"/>
-    <xacro:create_joint parent="waist" child="r_thingy" axis="1 0 0"/>
-    <xacro:create_link name="r_thingy"/>
-      <xacro:create_joint parent="r_thingy" child="r_upper" axis="0 1 0"/>
-      <xacro:create_link name="r_upper"/>
-        <xacro:create_joint parent="r_upper" child="r_lower" axis="0 1 0"/>
-        <xacro:create_link name="r_lower"/>
-    <xacro:create_joint parent="waist" child="l_thingy" axis="1 0 0"/>
-    <xacro:create_link name="l_thingy"/>
-      <xacro:create_joint parent="l_thingy" child="l_upper" axis="0 1 0"/>
-      <xacro:create_link name="l_upper"/>
-        <xacro:create_joint parent="l_upper" child="l_lower" axis="0 1 0"/>
-        <xacro:create_link name="l_lower"/>
+    <xacro:create_joint parent="waist" child="r_I" name="r_hip_pitch" axis="1 0 0"/>
+    <xacro:create_link name="r_I"/>
+      <xacro:create_joint parent="r_I" child="r_Ro" name="r_hip_yaw" axis="0 1 0"/>
+      <xacro:create_link name="r_Ro"/>
+        <xacro:create_joint parent="r_Ro" child="r_Ha" name="r_knee" axis="0 1 0"/>
+        <xacro:create_link name="r_Ha"/>
+          <xacro:create_joint parent="r_Ha" child="r_Ni" name="r_ankle_pitch" axis="0 1 0"/>
+          <xacro:create_link name="r_Ni"/>
+            <xacro:create_joint parent="r_Ni" child="r_Ho" name="r_ankle_yaw" axis="0 1 0"/>
+            <xacro:create_link name="r_Ho"/>
+
+  <xacro:create_joint parent="waist" child="l_I" name="l_hip_pitch" axis="1 0 0"/>
+  <xacro:create_link name="l_I"/>
+    <xacro:create_joint parent="l_I" child="l_Ro" name="l_hip_yaw" axis="0 1 0"/>
+    <xacro:create_link name="l_Ro"/>
+      <xacro:create_joint parent="l_Ro" child="l_Ha" name="l_knee" axis="0 1 0"/>
+      <xacro:create_link name="l_Ha"/>
+        <xacro:create_joint parent="l_Ha" child="l_Ni" name="l_ankle_pitch" axis="0 1 0"/>
+        <xacro:create_link name="l_Ni"/>
+          <xacro:create_joint parent="l_Ni" child="l_Ho" name="l_ankle_yaw" axis="0 1 0"/>
+          <xacro:create_link name="l_Ho"/>
 </robot>

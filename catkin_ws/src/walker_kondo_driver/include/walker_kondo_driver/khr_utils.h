@@ -12,7 +12,7 @@ extern "C" {
 #define SERVO_FREE_POSITION 0x8000
 #define SERVO_HOLD_POSITION 0x7FFF
 #define SERVO_NEWTRAL_POSITION 7500
-#define KHR_DOF 6
+#define KHR_DOF 10
 
 void error(KondoRef ki);
 std::string version_check();
