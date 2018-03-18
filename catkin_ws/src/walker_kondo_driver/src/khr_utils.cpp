@@ -88,10 +88,12 @@ int set_ics_switch(bool val) {
 
 int init_servo() {
   unsigned char servo_ids[KHR_DOF]={4,5,6,7,8,9,10,11,19,30};
+  double trim_angles[]={0,0.13,0,0,-0.06,0,-0.16,-0.18,-0.03,0.12}; //the positions where the servos are really at their zero point
+  //double trim_angles[]={0,0,0,0,0,0,0,0,0,0};
   // set serial servo register
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
     unsigned short ram_addr = 0x0090 + (0x0014 * servo_num);
-    copy_and_register_servo_register(ram_addr,  servo_ids[servo_num]);
+    copy_and_register_servo_register(ram_addr,  servo_ids[servo_num], angle2servo_trim(trim_angles[servo_num]));
   }
 
   // do not run ROM program
@@ -144,7 +146,7 @@ int set_serial_servo_register(unsigned short ram_addr, unsigned char servo_id) {
   return kondo_trx(&ki, 27, 4);
 }
 
-int set_serial_servo_trim(unsigned short ram_addr) {
+int set_serial_servo_trim(unsigned short ram_addr, unsigned short trim) {
   ram_addr+=2;
   ki.swap[0] = 9;
   ki.swap[1] = RCB4_CMD_MOV;
@@ -153,8 +155,8 @@ int set_serial_servo_trim(unsigned short ram_addr) {
   ki.swap[4] = (unsigned char)(ram_addr>>8);
   ki.swap[5] = 0x00;
   // 内容
-  ki.swap[6]  = 0x00;  // 基準値 (trim)
-  ki.swap[7]  = 0x00;
+  ki.swap[6]  = (unsigned char)(trim>>0);  // 基準値 (trim)
+  ki.swap[7]  = (unsigned char)(trim>>8);
   ki.swap[8] = kondo_checksum(&ki, 8);
   ROS_INFO("setting servo_id's trim to zero...");
   return kondo_trx(&ki, 9, 4);
@@ -209,14 +211,14 @@ int register_servo_register_addr(unsigned short register_addr, unsigned char ser
   return kondo_trx(&ki, 9, 4);
 }
 
-int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id) {
+int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id, unsigned short trim) {
   ROS_INFO("registering servo_id %d with ram address %hu ...", servo_id, ram_addr);
   int ret=copy_serial_servo_register_from_rom(ram_addr, servo_id);
 
   // ROS_INFO("setting servo's serial register at address %hu...",ram_addr);
   // int ret=set_serial_servo_register(ram_addr, servo_id);
   ROS_INFO("setting servo's trim to zero...");
-  ret=set_serial_servo_trim(ram_addr);
+  ret=set_serial_servo_trim(ram_addr, trim);
 
   ROS_INFO("registering user ram address to ICS designation address...");
   ret=register_servo_register_addr(ram_addr, servo_id);
@@ -376,4 +378,10 @@ unsigned short angle2servo(std::string name, double angle) {
   angle = angle * 180.0 / M_PI;
   // do some plus/minus correction here
   return (unsigned short)(angle * 2500.0 / 90.0) + 7500;
+}
+
+short angle2servo_trim(double angle){
+  angle = angle * 180.0 / M_PI;
+  // do some plus/minus correction here
+  return (short)(angle * 2500.0 / 90.0);
 }
