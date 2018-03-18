@@ -26,7 +26,7 @@ int set_serial_servo_register_free();
 int copy_serial_servo_register_from_rom(unsigned short rom_addr, int servo_num);
 int read_servo_register(char lower, char upper);
 int register_servo_register_addr(unsigned short register_addr, int ics_num);
-int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id);
+int copy_and_register_servo_register(unsigned short ram_addr, unsigned char servo_id, unsigned short trim);
 int single_servo_action(unsigned char servo_id, unsigned short position, unsigned char speed);
 int all_servo_action(unsigned short position[], unsigned char speed);
 int windows_head_move();
@@ -37,5 +37,6 @@ int change_all_servo_gain(unsigned char gain);
 int change_all_servo_gain(unsigned char gain_array[], int array_size);
 double servo2angle(std::string name, unsigned short position);
 unsigned short angle2servo(std::string name, double angle);
+short angle2servo_trim(double angle);
 
 #endif  // __KHR_UTILS_H__

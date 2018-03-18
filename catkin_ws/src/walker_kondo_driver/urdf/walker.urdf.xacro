@@ -16,7 +16,7 @@
     </link>
   </xacro:macro>
 
-  <xacro:macro name="create_joint" params="parent child name x:=0 y:=0 z:=0 axis angle_upper:=120 angle_lower:=-120">
+  <xacro:macro name="create_joint" params="parent child name x:=0 y:=0 z:=0 axis angle_upper:=20 angle_lower:=-20">
     <joint name="${name}" type="revolute">
       <parent link="${parent}"/>
       <child link="${child}"/>
