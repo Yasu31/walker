@@ -15,6 +15,10 @@ unsigned char servo_gain_hard[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0
 sensor_msgs::JointState prev_joint_state, prev_sensor_state;
 
 
+ros::Publisher sensor_pub;
+ros::Publisher js_pub;
+
+
 
 // 受け取ったJointStateのnameをもとに、
 // KHRの低レイヤー表現と同じ要素数・順番に成形したJointStateを返す
@@ -105,18 +109,74 @@ void gainCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
   return;
 }
 
+void timerCallback(const ros::TimerEvent& e){
+  int start_time = ros::Time::now().nsec;
+
+  sensor_msgs::JointState js_msg;
+  unsigned short position[KHR_DOF];
+  const char* name[KHR_DOF] =
+    {   "r_ankle_pitch",//4
+        "l_ankle_yaw",//5
+        "r_knee",//6
+        "l_knee",//7
+        "r_hip_pitch",//8
+        "l_hip_pitch",//9
+        "r_hip_yaw",//10
+        "l_hip_yaw",//11
+        "l_ankle_pitch",//19
+        "r_ankle_yaw"};
+
+  for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
+    ROS_INFO("mark 1 %d", ros::Time::now().nsec-start_time);
+    position[servo_num] = kondo_get_servo_pos((KondoRef)&ki, servo_num);  //this takes a substantial amount of time...
+    ROS_INFO("mark 2 %d", ros::Time::now().nsec-start_time);
+    js_msg.position.push_back(servo2angle(std::string(name[servo_num]), position[servo_num]));
+    ROS_INFO("mark 3 %d", ros::Time::now().nsec-start_time);
+    js_msg.name.push_back(name[servo_num]);
+  }
+
+  js_pub.publish(js_msg);
+  prev_joint_state = js_msg;
+
+
+
+  sensor_msgs::JointState sensor_msg;
+  const char* sensor_name[5] = {"battery" , "gyro_p", "gyro_r", "acc_y", "acc_x"};
+  bool batteryIsLow=false;
+  for (UINT sensor_idx = 0; sensor_idx < 5; sensor_idx++) {
+    int sensor_val;
+    kondo_read_analog((KondoRef)&ki, &sensor_val, sensor_idx);
+    if (sensor_idx==0){
+      // battery voltage = (sensor_val) * 25 / 1024
+      // the battery pack is at 7.2V
+      // we obviously don't have to worry about the battery while on the power adapter, so we ignore if the value is below 270.
+      float voltage=(float)sensor_val*25.0/1024.0;
+      if (6.5<voltage && voltage <7.0){
+        ROS_WARN("battery level below 7 Volts, at %lf Volts", voltage);
+        batteryIsLow=true;
+      }
+    }
+    sensor_msg.name.push_back(sensor_name[sensor_idx]);
+    sensor_msg.position.push_back(sensor_val);
+  }
+  if (batteryIsLow){
+    ROS_WARN("You should turn the robot off because it has low battery level");
+  }
+  sensor_pub.publish(sensor_msg);
+  prev_sensor_state = sensor_msg;
+}
+
 // argv[1]: 使用するKHRのindex（省略した場合は0）
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "kondo_driver");
   ros::NodeHandle n("~");
-  ros::Publisher ss_pub = n.advertise<sensor_msgs::JointState>("servo_state", 1000);
-  ros::Publisher js_pub = n.advertise<sensor_msgs::JointState>("joint_state", 1000);
-  ros::Publisher sensor_pub = n.advertise<sensor_msgs::JointState>("sensor_state", 1000);
+  js_pub = n.advertise<sensor_msgs::JointState>("joint_state", 1000);
+  sensor_pub = n.advertise<sensor_msgs::JointState>("sensor_state", 1000);
   ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 10, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Rate loop_rate(30);
+  ros::Timer timer=n.createTimer(ros::Duration(0.1), timerCallback);
 
 
   // open -------------------------------------------------------------------
@@ -147,86 +207,7 @@ int main(int argc, char **argv)
   // move servo
   ROS_INFO("Ready.");
 
-  // DEMO: circular movement
-  // unsigned short position=6500;
-  // change_all_servo_gain(20);
-  // short increment=100;
-  // while(ros::ok()){
-  //   for(int i=0;i<KHR_DOF;i++){
-  //     single_servo_action(ids[i], position, 126);
-  //   }
-  //   position+=increment;
-  //   if (position>8500){
-  //     increment=-100;
-  //     position=8500;
-  //   }
-  //   if(position<6500){
-  //     increment=100;
-  //     position=6500;
-  //   }
-  //   ros::spinOnce();
-  //   loop_rate.sleep();
-  // }
-
-  while (ros::ok()) {
-    sensor_msgs::JointState ss_msg, js_msg;
-    unsigned short position[KHR_DOF];
-    const char* name[KHR_DOF] =
-      {   "r_ankle_pitch",//4
-          "l_ankle_yaw",//5
-          "r_knee",//6
-          "l_knee",//7
-          "r_hip_pitch",//8
-          "l_hip_pitch",//9
-          "r_hip_yaw",//10
-          "l_hip_yaw",//11
-          "l_ankle_pitch",//19
-          "r_ankle_yaw"};
-    for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
-      position[servo_num] = kondo_get_servo_pos((KondoRef)&ki, servo_num);
-      ss_msg.position.push_back(position[servo_num]);
-      ss_msg.name.push_back(name[servo_num]);
-      if (position[servo_num] != 0) {
-        js_msg.position.push_back(servo2angle(std::string(name[servo_num]), position[servo_num]));
-        js_msg.name.push_back(name[servo_num]);
-      } else {
-        js_msg.position.push_back(0);
-        js_msg.name.push_back(name[servo_num]);
-     }
-    }
-    ss_pub.publish(ss_msg);
-    js_pub.publish(js_msg);
-    prev_joint_state = js_msg;
-
-    sensor_msgs::JointState sensor_msg;
-    const char* sensor_name[5] = {"battery" , "gyro_p", "gyro_r", "acc_y", "acc_x"};
-    bool batteryIsLow=false;
-    for (UINT sensor_idx = 0; sensor_idx < 5; sensor_idx++) {
-      int sensor_val;
-      kondo_read_analog((KondoRef)&ki, &sensor_val, sensor_idx);
-      if (sensor_idx==0){
-        // battery voltage = (sensor_val) * 25 / 1024
-        // the battery pack is at 7.2V
-        // we obviously don't have to worry about the battery while on the power adapter, so we ignore if the value is below 270.
-        float voltage=(float)sensor_val*25.0/1024.0;
-        if (6.5<voltage && voltage <7.0){
-          ROS_WARN("battery level below 7 Volts, at %lf Volts", voltage);
-          batteryIsLow=true;
-        }
-      }
-      sensor_msg.name.push_back(sensor_name[sensor_idx]);
-      sensor_msg.position.push_back(sensor_val);
-    }
-    if (batteryIsLow){
-      break;
-    }
-    sensor_pub.publish(sensor_msg);
-    prev_sensor_state = sensor_msg;
-
-    ros::spinOnce();  // this calls the callbacks.
-    loop_rate.sleep();
-  }
-
+  ros::spin();
 
   // close ------------------------------------------------------------------
   ret = kondo_close(&ki);
