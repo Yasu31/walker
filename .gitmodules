@@ -1,0 +1,3 @@
+[submodule "ikpy"]
+	path = ikpy
+	url = https://github.com/Yasu31/ikpy
