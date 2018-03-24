@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot name="walker" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:property name="PI" value="3.141592"/>
+  <xacro:macro name="create_joint" params="name parent child x:=0 y:=0 z:=0 axis angle_min:=-30 angle_max:=30">
+    <joint name="${name}" type="revolute">
+      <parent link="${parent}" />
+      <child link="${child}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
+      <axis xyz="${axis}"/>
+      <limit
+        effort="40.0" velocity="1.0"
+        lower="${angle_min*PI/180}"
+        upper="${angle_max*PI/180}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="create_mesh" params="name">
+    <visual>
+      <geometry>
+        <mesh scale="0.001 0.001 0.001" filename="package://walker_description/meshes/${name}.stl"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </xacro:macro>
+  <material name="gray">
+   <color rgba="0.90 0.90 0.90 1.00"/>
+  </material>
+
+  <link name="world"/>
+  <joint name="world_lfoot_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lfoot"/>
+  </joint>
+
+  <link name="lfoot">
+    <xacro:create_mesh name="lfoot"/>
+  </link>
+
+  <joint name="lfoot_lA_joint" type="fixed">
+    <parent link="lfoot"/>
+    <child link="lA"/>
+    <origin xyz="${-15/1000} 0 ${4/1000}"/>
+  </joint>
+
+  <link name="lA">
+    <xacro:create_mesh name="lA"/>
+  </link>
+
+  <xacro:create_joint name="l_ankle_roll" parent="lA" child="lB" x="19" z="38" axis="1 0 0"/>
+
+  <link name="lB">
+    <xacro:create_mesh name="lB"/>
+  </link>
+
+  <xacro:create_joint name="l_ankle_pitch" parent="lB" child="lC" x="-19.72" y="19.54" axis="0 1 0"/>
+
+  <link name="lC">
+    <xacro:create_mesh name="lC"/>
+  </link>
+
+  <xacro:create_joint name="l_knee" parent="lC" child="lD" z="61" axis="0 1 0"/>
+
+  <link name="lD">
+    <xacro:create_mesh name="lD"/>
+  </link>
+
+  <xacro:create_joint name="l_hip_roll" parent="lD" child="lE" x="19" y="-19" z="58" axis="1 0 0"/>
+
+  <link name="lE">
+    <xacro:create_mesh name="lB"/>
+    <!-- lB and lE are the same -->
+  </link>
+
+  <xacro:create_joint name="l_hip_pitch" parent="lE" child="lF" x="-19.72" y="19.54" axis="0 1 0"/>
+
+  <link name="lF">
+    <xacro:create_mesh name="lF"/>
+  </link>
+
+</robot>
