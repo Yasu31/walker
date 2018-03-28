@@ -33,15 +33,15 @@ void sanitiseJointState(const sensor_msgs::JointState::ConstPtr& js_in,
   {
     //each number depends on servo IDs and whether it's connected to SIO 1~3 or 5~7
     "r_ankle_pitch",//4
-    "l_ankle_yaw",//5
+    "l_ankle_roll",//5
     "r_knee",//6
     "l_knee",//7
     "r_hip_pitch",//8
     "l_hip_pitch",//9
-    "r_hip_yaw",//10
-    "l_hip_yaw",//11
+    "r_hip_roll",//10
+    "l_hip_roll",//11
     "l_ankle_pitch",//19
-    "r_ankle_yaw"};//30
+    "r_ankle_roll"};//30
   for (int i = 0; i < KHR_DOF; i++) {
     const char* tmp_name = joint_name[i];
     double tmp_pos = 0;
@@ -116,15 +116,15 @@ void timerCallback(const ros::TimerEvent& e){
   unsigned short position[KHR_DOF];
   const char* name[KHR_DOF] =
     {   "r_ankle_pitch",//4
-        "l_ankle_yaw",//5
+        "l_ankle_roll",//5
         "r_knee",//6
         "l_knee",//7
         "r_hip_pitch",//8
         "l_hip_pitch",//9
-        "r_hip_yaw",//10
-        "l_hip_yaw",//11
+        "r_hip_roll",//10
+        "l_hip_roll",//11
         "l_ankle_pitch",//19
-        "r_ankle_yaw"};
+        "r_ankle_roll"};
 
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
     ROS_INFO("mark 1 %d", ros::Time::now().nsec-start_time);

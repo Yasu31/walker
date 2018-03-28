@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find walker_kondo_driver)/launch/description.launch"/>
+  <!-- Generate/Load robot description file -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find walker_description)/urdf/walker.urdf.xacro'" />
+
   <remap from="joint_states" to="kondo_driver/command/joint_state"/>
   <node pkg="joint_state_publisher" type="joint_state_publisher" name="multi_joint_state_publisher">
     <param name="rate" value="20"/>
