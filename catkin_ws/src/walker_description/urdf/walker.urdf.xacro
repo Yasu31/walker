@@ -16,7 +16,7 @@
     <joint name="${name}" type="revolute">
       <parent link="${parent}" />
       <child link="${child}"/>
-      <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}" rpy="0 0 0"/>
       <axis xyz="${axis}"/>
       <limit
         effort="40.0" velocity="1.0"
@@ -29,7 +29,7 @@
     <joint name="${name}" type="fixed">
       <parent link="${parent}" />
       <child link="${child}"/>
-      <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}" rpy="0 0 0"/>
     </joint>
   </xacro:macro>
 
@@ -47,12 +47,12 @@
    <color rgba="0.90 0.90 0.90 1.00"/>
   </material>
 
-  <link name="world"/>
+  <!-- <link name="world"/> -->
   <!-- fix the robot to the world -->
-  <joint name="world_lfoot_joint" type="fixed">
-    <parent link="world"/>
-    <child link="lfoot_center"/>
-  </joint>
+  <!-- <joint name="world_lfoot_joint" type="fixed"> -->
+    <!-- <parent link="world"/> -->
+    <!-- <child link="lfoot_center"/> -->
+  <!-- </joint> -->
 
 <!-- LEFT FOOT -->
 
@@ -60,7 +60,7 @@
   <!-- center of the left foot's sole. -->
 
   <xacro:create_fixed_joint name="lfoot_center_lfoot_joint" parent="lfoot_center" child="lfoot"/>
-  <!-- The origin of lfoot_center and lfoot are the same, making the lfoot_center link seem useless, but I've made it since rfoot_center is going to be necessary(because the origin of the link rfoot is not at the center of the right foot's sole, due to the direction of the link chain). -->
+    <!-- The origin of lfoot_center and lfoot are the same, making the lfoot_center link seem useless, but I've made it since rfoot_center is going to be necessary(because the origin of the link rfoot is not at the center of the right foot's sole, due to the direction of the link chain). -->
 
   <link name="lfoot">
     <xacro:create_mesh name="lfoot"/>

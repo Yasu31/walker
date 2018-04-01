@@ -33,15 +33,15 @@ void sanitiseJointState(const sensor_msgs::JointState::ConstPtr& js_in,
   {
     //each number depends on servo IDs and whether it's connected to SIO 1~3 or 5~7
     "r_ankle_pitch",//4
-    "l_ankle_yaw",//5
+    "l_ankle_roll",//5
     "r_knee",//6
     "l_knee",//7
     "r_hip_pitch",//8
     "l_hip_pitch",//9
-    "r_hip_yaw",//10
-    "l_hip_yaw",//11
+    "r_hip_roll",//10
+    "l_hip_roll",//11
     "l_ankle_pitch",//19
-    "r_ankle_yaw"};//30
+    "r_ankle_roll"};//30
   for (int i = 0; i < KHR_DOF; i++) {
     const char* tmp_name = joint_name[i];
     double tmp_pos = 0;
@@ -77,6 +77,7 @@ void jsCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
   ROS_INFO("jsCommandCallback start at %d", tmp_time.nsec);
   sensor_msgs::JointState msg_sane;
   sanitiseJointState(msg, &msg_sane);
+  msg_sane.position[2]=-msg_sane.position[2]; //r_knee is different from URDF
   if (msg_sane.name.size() != KHR_DOF || msg_sane.position.size() != KHR_DOF) {
     ROS_WARN("[gainCmdCb] invalid joint_state command.");
     return;
@@ -116,15 +117,15 @@ void timerCallback(const ros::TimerEvent& e){
   unsigned short position[KHR_DOF];
   const char* name[KHR_DOF] =
     {   "r_ankle_pitch",//4
-        "l_ankle_yaw",//5
+        "l_ankle_roll",//5
         "r_knee",//6
         "l_knee",//7
         "r_hip_pitch",//8
         "l_hip_pitch",//9
-        "r_hip_yaw",//10
-        "l_hip_yaw",//11
+        "r_hip_roll",//10
+        "l_hip_roll",//11
         "l_ankle_pitch",//19
-        "r_ankle_yaw"};
+        "r_ankle_roll"};
 
   for (int servo_num = 0; servo_num < KHR_DOF; servo_num++ ) {
     ROS_INFO("mark 1 %d", ros::Time::now().nsec-start_time);
@@ -134,6 +135,7 @@ void timerCallback(const ros::TimerEvent& e){
     ROS_INFO("mark 3 %d", ros::Time::now().nsec-start_time);
     js_msg.name.push_back(name[servo_num]);
   }
+  js_msg.position[2]=-js_msg.position[2]; //r_knee is opposite of URDF
 
   js_pub.publish(js_msg);
   prev_joint_state = js_msg;
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
   ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 10, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Timer timer=n.createTimer(ros::Duration(0.1), timerCallback);
+  // ros::Timer timer=n.createTimer(ros::Duration(0.1), timerCallback); //this slows down whole process...?
 
 
   // open -------------------------------------------------------------------
