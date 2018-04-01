@@ -5,10 +5,10 @@ Use this to roughly check if the commands sent look valid -->
     <!-- Generate/Load robot description file -->
     <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find walker_description)/urdf/walker.urdf.xacro'" />
 
-
+    <remap to="/kondo_driver/command/joint_state" from="/joint_states"/>
     <!-- Robot state publisher subscribe to joint states and publish "tf" transforms -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
-      <remap from="command/joint_states" to="/joint_states"/>
+
       <!-- TODO: fix topic name -->
     </node>
 

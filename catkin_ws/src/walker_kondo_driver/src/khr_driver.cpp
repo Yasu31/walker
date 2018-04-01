@@ -77,6 +77,7 @@ void jsCommandCallback(const sensor_msgs::JointState::ConstPtr& msg)
   ROS_INFO("jsCommandCallback start at %d", tmp_time.nsec);
   sensor_msgs::JointState msg_sane;
   sanitiseJointState(msg, &msg_sane);
+  msg_sane.position[2]=-msg_sane.position[2]; //r_knee is different from URDF
   if (msg_sane.name.size() != KHR_DOF || msg_sane.position.size() != KHR_DOF) {
     ROS_WARN("[gainCmdCb] invalid joint_state command.");
     return;
@@ -134,6 +135,7 @@ void timerCallback(const ros::TimerEvent& e){
     ROS_INFO("mark 3 %d", ros::Time::now().nsec-start_time);
     js_msg.name.push_back(name[servo_num]);
   }
+  js_msg.position[2]=-js_msg.position[2]; //r_knee is opposite of URDF
 
   js_pub.publish(js_msg);
   prev_joint_state = js_msg;
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
   ros::Subscriber jscmd_sub = n.subscribe("command/joint_state", 10, jsCommandCallback);
   ros::Subscriber gaincmd_sub = n.subscribe("command/gain", 1000, gainCommandCallback);
   ros::ServiceServer get_state_srv = n.advertiseService("get_state", getStateCb);
-  ros::Timer timer=n.createTimer(ros::Duration(0.1), timerCallback);
+  // ros::Timer timer=n.createTimer(ros::Duration(0.1), timerCallback); //this slows down whole process...?
 
 
   // open -------------------------------------------------------------------
