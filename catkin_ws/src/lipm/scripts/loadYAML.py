@@ -19,7 +19,7 @@ rospy.init_node('loadYAML', anonymous=True)
 i=1
 interval=data['interval']
 
-rate=rospy.Rate(1.0/interval/1.2)
+rate=rospy.Rate(1.0/interval/0.8)
 # rate=rospy.Rate(1.0)
 
 while not rospy.is_shutdown():
