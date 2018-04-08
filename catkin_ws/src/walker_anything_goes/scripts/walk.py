@@ -4,6 +4,9 @@ import rospy
 from sensor_msgs.msg import JointState
 import math
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from threading import Thread
 
 
 def thingy_upper_joint(normalized_time, rl=0):
@@ -55,6 +58,26 @@ def waist_thingy_joint(normalized_time, rl=0):
     elif normalized_time<0.9:
         return j[1-rl]+(j[rl]-j[1-rl])*(normalized_time-0.8)/0.1
 
+def animate(i):
+    print("oh hai mark")
+    right_normalized_time=normalized_time-math.floor(normalized_time)
+    left_normalized_time=(normalized_time+0.5)-math.floor(normalized_time+0.5)
+    rtopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+    rtopnow.set_xdata(right_normalized_time)
+    ltopdata.set_ydata([thingy_upper_joint(t) for t in time_axe])
+    ltopnow.set_xdata(left_normalized_time)
+    rmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+    rmiddlenow.set_xdata(right_normalized_time)
+    lmiddledata.set_ydata([upper_lower_joint(t) for t in time_axe])
+    lmiddlenow.set_xdata(left_normalized_time)
+    rbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+    rbottomnow.set_xdata(right_normalized_time)
+    lbottomdata.set_ydata([waist_thingy_joint(t) for t in time_axe])
+    lbottomnow.set_xdata(left_normalized_time)
+    print("hey")
+    # fig.canvas.show()
+
+
 
 if __name__=='__main__':
     pub=rospy.Publisher("/kondo_driver/command/joint_state", JointState, queue_size=100)
@@ -66,7 +89,6 @@ if __name__=='__main__':
     while not rospy.is_shutdown():
         rospy.loginfo("normalized_time is "+str(normalized_time))
         normalized_time=rospy.get_time()/cycle
-        constrained_normalized_time=normalized_time-math.floor(normalized_time)
         joint_state=JointState()
 
         # all the joints must be published, because of the code for kondo_driver.

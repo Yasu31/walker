@@ -1,0 +1,6 @@
+[submodule "ikpy"]
+	path = ikpy
+	url = https://github.com/Yasu31/ikpy
+[submodule "catkin_ws/src/walker_kondo_driver"]
+	path = catkin_ws/src/walker_kondo_driver
+	url = https://github.com/Yasu31/walker_kondo_driver.git

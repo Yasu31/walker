@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(walker_kondo_driver)
+project(lipm)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -11,58 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  sensor_msgs
-  message_generation
 )
-
-add_service_files(
-  FILES
-  GetState.srv
-)
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-)
-catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES walker_kondo_driver
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs message_runtime
-#  DEPENDS system_lib
-)
-
-include_directories(
-  include include/walker_kondo_driver ${catkin_INCLUDE_DIRS}
-)
-add_library(kondo src/khr_utils.cpp src/rcb4.c src/rcb4_utils.c)
-add_executable(kondo_driver
-  src/khr_driver.cpp
-  src/rcb4.c
-  src/khr_utils.cpp)
-target_link_libraries(kondo_driver
-  ${catkin_LIBRARIES}
-  ftdi
-  usb)
-target_link_libraries(kondo
-  ${catkin_LIBRARIES}
-  ftdi
-  usb
-)
-add_dependencies(kondo_driver walker_kondo_driver_gencpp)
-
-install(TARGETS kondo_driver kondo
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-install(DIRECTORY launch scripts
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  USE_SOURCE_PERMISSIONS)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -153,7 +102,12 @@ install(DIRECTORY launch scripts
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES lipm
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -168,7 +122,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/walker_kondo_driver.cpp
+#   src/${PROJECT_NAME}/lipm.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -179,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/walker_kondo_driver_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/lipm_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -236,7 +190,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_walker_kondo_driver.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_lipm.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -1,11 +1,22 @@
 <?xml version="1.0"?>
 <robot name="walker" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+  This is structured so that the left foot is fixed to the ground, and the link extends towards the waist, then finishes at the right foot. I figured it would be easier to calculate the IK of the floating foot or the CoM of the robot this way. (the other option was to fix the waist, then set both right & left foot as end effectors.)
+  I've disregarded the direction of the joint angles, so will have to multiply the joint angle vector with a matrix when interfacing with robot.
+  Set the "fixed frame" to "pelvis" in Rviz to pin down the waist.
+  The naming of each link and joint(and its direction) are available in memo from Mar.24.
+
+  TODO: joint limits
+  TODO: set CoM for each link
+  TODO: collision meshes
+ -->
   <xacro:property name="PI" value="3.141592"/>
+
   <xacro:macro name="create_joint" params="name parent child x:=0 y:=0 z:=0 axis angle_min:=-30 angle_max:=30">
     <joint name="${name}" type="revolute">
       <parent link="${parent}" />
       <child link="${child}"/>
-      <origin xyz="${x/1000} ${y/1000} ${z/1000}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}" rpy="0 0 0"/>
       <axis xyz="${axis}"/>
       <limit
         effort="40.0" velocity="1.0"
@@ -14,67 +25,148 @@
     </joint>
   </xacro:macro>
 
-  <xacro:macro name="create_mesh" params="name">
+  <xacro:macro name="create_fixed_joint" params="name parent child x:=0 y:=0 z:=0">
+    <joint name="${name}" type="fixed">
+      <parent link="${parent}" />
+      <child link="${child}"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="create_mesh" params="name x:=0 y:=0 z:=0 yaw:=0">
+    <!-- the offsets are used when "re-using" the left leg meshes for the right leg. It's somewhat confusing. -->
     <visual>
       <geometry>
         <mesh scale="0.001 0.001 0.001" filename="package://walker_description/meshes/${name}.stl"/>
       </geometry>
       <material name="gray"/>
+      <origin xyz="${x/1000} ${y/1000} ${z/1000}" rpy="0 0 ${yaw*PI/180}"/>
     </visual>
   </xacro:macro>
   <material name="gray">
    <color rgba="0.90 0.90 0.90 1.00"/>
   </material>
 
-  <link name="world"/>
-  <joint name="world_lfoot_joint" type="fixed">
-    <parent link="world"/>
-    <child link="lfoot"/>
-  </joint>
+  <!-- <link name="world"/> -->
+  <!-- fix the robot to the world -->
+  <!-- <joint name="world_lfoot_joint" type="fixed"> -->
+    <!-- <parent link="world"/> -->
+    <!-- <child link="lfoot_center"/> -->
+  <!-- </joint> -->
+
+<!-- LEFT FOOT -->
+
+  <link name="lfoot_center"/>
+  <!-- center of the left foot's sole. -->
+
+  <xacro:create_fixed_joint name="lfoot_center_lfoot_joint" parent="lfoot_center" child="lfoot"/>
+    <!-- The origin of lfoot_center and lfoot are the same, making the lfoot_center link seem useless, but I've made it since rfoot_center is going to be necessary(because the origin of the link rfoot is not at the center of the right foot's sole, due to the direction of the link chain). -->
 
   <link name="lfoot">
     <xacro:create_mesh name="lfoot"/>
   </link>
 
-  <joint name="lfoot_lA_joint" type="fixed">
-    <parent link="lfoot"/>
-    <child link="lA"/>
-    <origin xyz="${-15/1000} 0 ${4/1000}"/>
-  </joint>
+  <xacro:create_fixed_joint name="lfoot_lA_joint" parent="lfoot" child="lA" x="-15" z="4"/>
+
+<!-- LEFT LEG -->
 
   <link name="lA">
     <xacro:create_mesh name="lA"/>
   </link>
 
-  <xacro:create_joint name="l_ankle_roll" parent="lA" child="lB" x="19" z="38" axis="1 0 0"/>
+  <xacro:create_joint name="l_ankle_roll" parent="lA" child="lB" x="19" z="38" axis="1 0 0" angle_min="-23" angle_max="23"/>
 
   <link name="lB">
     <xacro:create_mesh name="lB"/>
   </link>
 
-  <xacro:create_joint name="l_ankle_pitch" parent="lB" child="lC" x="-19.72" y="19.54" axis="0 1 0"/>
+  <xacro:create_joint name="l_ankle_pitch" parent="lB" child="lC" x="-19.72" y="19.54" axis="0 1 0" angle_min="-60" angle_max="60"/>
 
   <link name="lC">
     <xacro:create_mesh name="lC"/>
   </link>
 
-  <xacro:create_joint name="l_knee" parent="lC" child="lD" z="61" axis="0 1 0"/>
+  <xacro:create_joint name="l_knee" parent="lC" child="lD" z="61" axis="0 1 0" angle_min="-90" angle_max="0"/>
 
   <link name="lD">
     <xacro:create_mesh name="lD"/>
   </link>
 
-  <xacro:create_joint name="l_hip_roll" parent="lD" child="lE" x="19" y="-19" z="58" axis="1 0 0"/>
+  <xacro:create_joint name="l_hip_roll" parent="lD" child="lE" x="19" y="-19" z="58" axis="1 0 0" angle_min="-23" angle_max="23"/>
 
   <link name="lE">
     <xacro:create_mesh name="lB"/>
     <!-- lB and lE are the same -->
   </link>
 
-  <xacro:create_joint name="l_hip_pitch" parent="lE" child="lF" x="-19.72" y="19.54" axis="0 1 0"/>
+  <xacro:create_joint name="l_hip_pitch" parent="lE" child="lF" x="-19.72" y="19.54" axis="0 1 0" angle_min="-60" angle_max="60"/>
 
   <link name="lF">
     <xacro:create_mesh name="lF"/>
   </link>
+
+<!-- WAIST -->
+
+  <xacro:create_fixed_joint name="lF_waist_joint" parent="lF" child="waist" y="-19" z="28"/>
+
+  <link name="waist">
+    <xacro:create_mesh name="waist"/>
+  </link>
+
+  <xacro:create_fixed_joint name="waist_pelvis_joint" parent="waist" child="pelvis" y="-23.5"/>
+
+  <link name="pelvis"/>
+  <!-- pelvis is the "center" of the robot. -->
+
+  <xacro:create_fixed_joint name="waist_rF_joint" parent="waist" child="rF" y="-47"/>
+
+<!-- RIGHT LEG -->
+
+  <link name="rF">
+    <xacro:create_mesh name="lF" y="-19" z="-28" yaw="180"/>
+  </link>
+
+  <xacro:create_joint name="r_hip_pitch" parent="rF" child="rE" y="-19" z="-28" axis="0 1 0" angle_min="-60" angle_max="60"/>
+
+  <link name="rE">
+    <xacro:create_mesh name="lB" x="-19.72" y="19.54" yaw="180"/>
+    <!-- re-using the meshes from the right leg. It's a bit confusing to set the origin parameters, and I've done it through trial and error lol -->
+  </link>
+
+  <xacro:create_joint name="r_hip_roll" parent="rE" child="rD" x="19.72" y="19.54" axis="1 0 0" angle_min="-23" angle_max="23"/>
+
+  <link name="rD">
+    <xacro:create_mesh name="lD" x="-19" y="-19" z="-58" yaw="180"/>
+  </link>
+
+  <xacro:create_joint name="r_knee" parent="rD" child="rC" x="-19" y="-19" z="-58" axis="0 1 0" angle_min="0" angle_max="90"/>
+
+  <link name="rC">
+    <xacro:create_mesh name="lC" z="-61" yaw="180"/>
+  </link>
+
+  <xacro:create_joint name="r_ankle_pitch" parent="rC" child="rB" z="-61" axis="0 1 0" angle_min="-60" angle_max="60"/>
+
+  <link name="rB">
+    <xacro:create_mesh name="lB" x="-19.72" y="19.54" yaw="180"/>
+  </link>
+
+  <xacro:create_joint name="r_ankle_roll" parent="rB" child="rA" x="19.72" y="19.54" axis="1 0 0"  angle_min="-23" angle_max="23"/>
+
+  <link name="rA">
+    <xacro:create_mesh name="lA" x="-19" z="-38" yaw="180"/>
+  </link>
+
+<!-- RIGHT FOOT -->
+
+  <xacro:create_fixed_joint name="rA_rfoot_joint" parent="rA" child="rfoot" x="-19" z="-38"/>
+
+  <link name="rfoot">
+    <xacro:create_mesh name="lfoot" x="15" z="-4"/>
+  </link>
+
+  <xacro:create_fixed_joint name="rfoot_rfoot_center_joint" parent="rfoot" child="rfoot_center" x="15" z="-4"/>
+
+  <link name="rfoot_center"/>
 
 </robot>
