@@ -1,3 +1,4 @@
+# kind of works...
 interval: !!python/object/apply:numpy.core.multiarray.scalar
 - !!python/object/apply:numpy.dtype
   args: [f8, 0, 1]
