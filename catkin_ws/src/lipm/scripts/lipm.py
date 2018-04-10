@@ -10,15 +10,15 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-height_com=0.13 #height of center of mass of robot.
+height_com=0.12 #height of center of mass of robot.
 omega=np.sqrt(9.8/height_com)
 N=20 #interpolate a step sequence into how many steps?
 M=2# how many steps to take
 
 # calculate the initial conditions that would ensure symmetrical movement(see 4/8 entry for details)
-x0=-0.03
-y0=-0.01
-vx0=0.3
+x0=-0.015
+y0=-0.02
+vx0=0.155
 vy0=x0*y0*omega*omega/vx0
 print("initial positions:\nx\t"+str(x0)+"\ty\t"+str(y0))
 print("initial velocities:\nx\t"+str(vx0)+"\ty\t"+str(vy0))
@@ -61,12 +61,17 @@ def z_low(t):
     '''how high the pelvis should be in relation to the foot, when it is the swing foot.
     '''
     val=0.16
-    if t<T/8:
-        return (val-z_high(t))/(T/8)*t+z_high(t)
-    elif t<T*3/8:
-        return val
+    # if t<T/8:
+    #     return (val-z_high(t))/(T/8)*t+z_high(t)
+    # elif t<T*3/8:
+    #     return val
+    # else:
+    #     return (z_high(t)-val)/(T/8)*(t-(T*3/8))+val
+    if t<T/4:
+        return (val-z_high(t))/(T/4)*t+z_high(t)
     else:
-        return (z_high(t)-val)/(T/8)*(t-(T*3/8))+val
+        return (z_high(t)-val)/(T/4)*(t-(T/4))+val
+
 
 print("calculating coordinates of the pelvis relative to each foot...")
 i=0
